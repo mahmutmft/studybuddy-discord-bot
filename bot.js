@@ -1,18 +1,21 @@
-require('dotenv').config();
-const { Client, GatewayIntentBits } = require('discord.js');
+const fs = require('fs');
 
-const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent] });
+const commandFiles = fs.readdirSync('./commands').filter(file => file.endsWith('.js'));
+const commands = new Map();
 
-client.once('ready', () => {
-    console.log(`Bot is online! Logged in as ${client.user.tag}`);
-});
+for (const file of commandFiles) {
+    const command = require(`./commands/${file}`);
+    commands.set(command.name, command);
+}
 
 client.on('messageCreate', (message) => {
-    if (message.author.bot) return;
+    if (!message.content.startsWith('!') || message.author.bot) return;
 
-    if (message.content === '!hi') {
-        message.reply('hi!');
+    const args = message.content.slice(1).trim().split(/ +/);
+    const commandName = args.shift().toLowerCase();
+
+    if (commands.has(commandName)) {
+        const command = commands.get(commandName);
+        command.execute(message, args);
     }
 });
-
-client.login(process.env.TOKEN);
